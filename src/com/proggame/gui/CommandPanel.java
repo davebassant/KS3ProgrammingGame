@@ -1,29 +1,57 @@
 package com.proggame.gui;
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 
+import com.proggame.utils.CommandListener;
+
+@SuppressWarnings("serial")
 public class CommandPanel extends JPanel {
 	
 	private static final int TEXT_ROWS = 10;
 	private static final int TEXT_COLS = 20;
+	
+	private final CommandListener mlistener;
 
-	public CommandPanel() {
+	public CommandPanel(CommandListener listener) {
+		if (listener == null) {
+			throw new IllegalArgumentException("listener is null");
+		}
+		mlistener = listener;
+		
 		this.setLayout(new BorderLayout());
 		
-		JTextArea txtArea = new JTextArea(TEXT_ROWS, TEXT_COLS);
-		JButton btnCommand = new JButton("Run Command");
+		final JTextArea txtArea = new JTextArea(TEXT_ROWS, TEXT_COLS);
+		final JScrollPane scrPane = new JScrollPane(txtArea);
+		scrPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+		final JButton btnCommand = new JButton("Run Commands");
+		
+		btnCommand.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				mlistener.commandsIssued(txtArea.getText());
+				txtArea.setText("");
+				txtArea.setEditable(false);
+				btnCommand.setEnabled(false);
+			}
+		});
 		
 		Box box = Box.createHorizontalBox();
 		box.add(Box.createHorizontalGlue());
 		box.add(btnCommand);
 		box.add(Box.createHorizontalGlue());
 		
-		this.add(txtArea, BorderLayout.CENTER);
+		this.add(scrPane, BorderLayout.CENTER);
 		this.add(box, BorderLayout.SOUTH);
 	}
 }

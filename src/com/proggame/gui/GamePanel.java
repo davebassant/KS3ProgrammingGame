@@ -15,9 +15,12 @@ public class GamePanel extends JPanel {
 	
 	private Color Player_Color 	= Color.GREEN;
 	private Color End_Color 	= Color.RED;
+	private Color Default_Color = Color.WHITE;
 	
 	private int x_position = 0;
 	private int y_position = 0;
+	
+	private final GridButton[][] gridButtons;
 
 	public GamePanel() {
 		GridLayout gl = new GridLayout();
@@ -28,7 +31,7 @@ public class GamePanel extends JPanel {
 		
 		this.setLayout(gl);
 		
-		GridButton[][] gridButtons = new GridButton[ROWS][COLS];
+		gridButtons = new GridButton[ROWS][COLS];
 		
 		GridButton gbRef;
 		for (int i = 0; i < ROWS; ++i) {
@@ -39,15 +42,62 @@ public class GamePanel extends JPanel {
 			}
 		}
 		
-		
+		setPositionColor(Player_Color);
+		gridButtons[ROWS-1][COLS-1].setBackground(End_Color);
 	}
 	
-	private static class GridButton extends JButton {
-		private static final Dimension GB_DIM = new Dimension(50,30);
+	public void moveRight() {
+		if (x_position >= (COLS - 1)) {
+			return;
+		}
+		
+		setPositionColor(Default_Color);
+		++x_position;
+		setPositionColor(Player_Color);
+	}
+	
+	public void moveDown() {
+		if (y_position >= (ROWS - 1)) {
+			return;
+		}
+		
+		setPositionColor(Default_Color);
+		++y_position;
+		setPositionColor(Player_Color);
+	}
+	
+	public void moveLeft() {
+		if (x_position == 0) {
+			return;
+		}
+		
+		setPositionColor(Default_Color);
+		--x_position;
+		setPositionColor(Player_Color);
+	}
+	
+	public void moveUp() {
+		if (y_position == 0) {
+			return;
+		}
+		
+		setPositionColor(Default_Color);
+		--y_position;
+		setPositionColor(Player_Color);
+	}
+	
+	private void setPositionColor(Color color) {
+		gridButtons[y_position][x_position].setBackground(color);
+	}
+	
+	private class GridButton extends JButton {
+		
+		private final Dimension GB_DIM = new Dimension(50,30);
 		
 		private GridButton() {
 			this.setPreferredSize(GB_DIM);
 			this.setEnabled(false);
+			this.setBackground(GamePanel.this.Default_Color);
 		}
 	}
 }

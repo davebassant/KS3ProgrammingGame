@@ -3,8 +3,8 @@ package com.proggame.utils;
 public interface GameEventListener {
 
 	public enum GameEvent {
-		GAME_OVER_GOOD, GAME_OVER_BAD, MOVE_DOWN, MOVE_RIGHT;
+		GAME_OVER_GOOD, GAME_OVER_BAD;
 	}
 	
-	public void EventOccured(GameEvent event);
+	public void eventOccured(GameEvent event);
 }
