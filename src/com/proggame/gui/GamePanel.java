@@ -7,22 +7,31 @@ import java.awt.GridLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
+import com.proggame.utils.GameOverListener;
+import com.proggame.utils.GameOverListener.GameOverEvent;
+
 @SuppressWarnings("serial")
 public class GamePanel extends JPanel {
 	
 	private static final int ROWS = 10;
 	private static final int COLS = 20;
 	
-	private Color Player_Color 	= Color.GREEN;
-	private Color End_Color 	= Color.RED;
-	private Color Default_Color = Color.WHITE;
+	private Color Player_Color 		= Color.GREEN;
+	private Color Bad_Player_Color 	= Color.BLACK;
+	private Color End_Color 		= Color.RED;
+	private Color Default_Color 	= Color.WHITE;
 	
-	private int x_position = 0;
-	private int y_position = 0;
+	private int x_position;
+	private int y_position;
+	
+	private int bad_x_position;
+	private int bad_y_position;
 	
 	private final GridButton[][] gridButtons;
+	
+	private final GameOverListener gameOverListener;
 
-	public GamePanel() {
+	public GamePanel(GameOverListener goListener) {
 		GridLayout gl = new GridLayout();
 		gl.setHgap(5);
 		gl.setVgap(5);
@@ -30,6 +39,8 @@ public class GamePanel extends JPanel {
 		gl.setColumns(COLS);
 		
 		this.setLayout(gl);
+		
+		gameOverListener = goListener;
 		
 		gridButtons = new GridButton[ROWS][COLS];
 		
@@ -42,8 +53,24 @@ public class GamePanel extends JPanel {
 			}
 		}
 		
+		initialise();
+	}
+	
+	public void initialise() {
+		for (int i = 0; i < ROWS; ++i) {
+			for (int j = 0; j < COLS; ++j) {
+				gridButtons[i][j].setBackground(Default_Color);
+			}
+		}
+		
+		x_position = 0;
+		y_position = 0;
+		bad_x_position = COLS - 1;
+		bad_y_position = 0;
+		
 		setPositionColor(Player_Color);
 		gridButtons[ROWS-1][COLS-1].setBackground(End_Color);
+		setBadPositionColor(Bad_Player_Color);
 	}
 	
 	public void moveRight() {
@@ -86,8 +113,81 @@ public class GamePanel extends JPanel {
 		setPositionColor(Player_Color);
 	}
 	
+	public void moveBadRight() {
+		setBadPositionColor(Default_Color);
+		
+		if (bad_x_position == (COLS - 1))
+			bad_x_position = 0;
+		else 
+			++bad_x_position;
+		
+		if (bad_x_position == 0 && bad_y_position == 0)
+			bad_x_position = 1;
+		
+		setBadPositionColor(Bad_Player_Color);
+	}
+	
+	public void moveBadLeft() {
+		setBadPositionColor(Default_Color);
+		
+		if (bad_x_position == 0)
+			bad_x_position = (COLS - 1);
+		else 
+			--bad_x_position;
+		
+		if (bad_x_position == 0 && bad_y_position == 0)
+			bad_x_position = (COLS - 1);
+		
+		setBadPositionColor(Bad_Player_Color);
+	}
+	
+	public void moveBadDown() {
+		setBadPositionColor(Default_Color);
+		
+		if (bad_y_position == (ROWS - 1))
+			bad_y_position = 0;
+		else 
+			++bad_y_position;
+		
+		if (bad_x_position == 0 && bad_y_position == 0)
+			bad_y_position = 1;
+		
+		setBadPositionColor(Bad_Player_Color);
+	}
+	
+	public void moveBadUp() {
+		setBadPositionColor(Default_Color);
+		
+		if (bad_y_position == 0)
+			bad_y_position = (ROWS - 1);
+		else 
+			--bad_y_position;
+		
+		if (bad_x_position == 0 && bad_y_position == 0)
+			bad_y_position = (ROWS - 1);
+		
+		setBadPositionColor(Bad_Player_Color);
+	}
+	
 	private void setPositionColor(Color color) {
 		gridButtons[y_position][x_position].setBackground(color);
+		checkPositions();
+	}
+	
+	private void setBadPositionColor(Color color) {
+		gridButtons[bad_y_position][bad_x_position].setBackground(color);
+		checkPositions();
+	}
+	
+	private void checkPositions() {
+		if (y_position == ROWS - 1 && x_position == COLS - 1) {
+			
+			gameOverListener.gameOverEventOccured(GameOverEvent.GOOD);
+		} else if (y_position == bad_y_position && x_position == bad_x_position &&
+				y_position != 0 && x_position != 0) {
+			
+			gameOverListener.gameOverEventOccured(GameOverEvent.BAD);
+		}
 	}
 	
 	private class GridButton extends JButton {

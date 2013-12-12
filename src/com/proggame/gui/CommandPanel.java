@@ -20,6 +20,9 @@ public class CommandPanel extends JPanel {
 	private static final int TEXT_COLS = 20;
 	
 	private final CommandListener mlistener;
+	
+	private final JTextArea txtArea;
+	private final JButton btnCommand;
 
 	public CommandPanel(CommandListener listener) {
 		if (listener == null) {
@@ -29,11 +32,12 @@ public class CommandPanel extends JPanel {
 		
 		this.setLayout(new BorderLayout());
 		
-		final JTextArea txtArea = new JTextArea(TEXT_ROWS, TEXT_COLS);
+		txtArea = new JTextArea(TEXT_ROWS, TEXT_COLS);
+		btnCommand = new JButton("Run Commands");
+		
 		final JScrollPane scrPane = new JScrollPane(txtArea);
 		scrPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
-		final JButton btnCommand = new JButton("Run Commands");
 		
 		btnCommand.addActionListener(new ActionListener() {
 
@@ -53,5 +57,13 @@ public class CommandPanel extends JPanel {
 		
 		this.add(scrPane, BorderLayout.CENTER);
 		this.add(box, BorderLayout.SOUTH);
+		
+		initialise();
+	}
+	
+	public void initialise() {
+		txtArea.setText("");
+		txtArea.setEditable(true);
+		btnCommand.setEnabled(true);
 	}
 }
