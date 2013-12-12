@@ -23,6 +23,8 @@ public class Launcher implements CommandListener, GameOverListener {
 	
 	private final static int MAX_COMMANDS_QUEUE_LENGTH = 20;
 	
+	private final static String MOVE_STR 		= "MOVE";
+	private final static String RAND_STR 		= "RAND";
 	private final static String LOOP_STR 		= "LOOP";
 	private final static String LOOP_END_STR 	= "END";
 	
@@ -235,13 +237,51 @@ public class Launcher implements CommandListener, GameOverListener {
 		return true;
 	}
 	
+	private Runnable handleMove(final String command) {
+		String[] commandParts = command.split(" ");
+		if (commandParts.length != 3) {
+			throw new IllegalArgumentException("Invalid Move; must be 'move N M;'");
+		}
+		
+		try {
+			final int x = Integer.parseInt(commandParts[1]);
+			final int y = Integer.parseInt(commandParts[2]);
+			
+			return new Runnable() {
+
+				@Override
+				public void run() {
+					gamePanel.moveBad(x, y);
+				}
+			};
+		} catch (NumberFormatException nfe) {
+			throw new IllegalArgumentException("Invalid Move; NaN");
+		}
+	}
+	
+	private Runnable handleRand() {
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				gamePanel.moveBadRand();
+			}
+		};
+	}
+	
 	private void runCommands(final String[] commands) {
 		running = true;
 		
 		Runnable r;
 		for (String command : commands) {
 			command = command.trim().toUpperCase();
-			r = badCommandMap.get(command);
+			if (command.startsWith(MOVE_STR)) {
+				r = handleMove(command);
+			} else if (command.startsWith(RAND_STR)) {
+				r = handleRand();
+			} else {
+				r = badCommandMap.get(command);
+			}
 			if (r != null) {
 				tpe.execute(SLEEP);
 				tpe.execute(r);

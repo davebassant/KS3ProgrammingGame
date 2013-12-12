@@ -3,6 +3,7 @@ package com.proggame.gui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.util.Random;
 
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -30,6 +31,8 @@ public class GamePanel extends JPanel {
 	private final GridButton[][] gridButtons;
 	
 	private final GameOverListener gameOverListener;
+	
+	private final Random randomGen = new Random();
 
 	public GamePanel(GameOverListener goListener) {
 		GridLayout gl = new GridLayout();
@@ -198,6 +201,13 @@ public class GamePanel extends JPanel {
 		bad_x_position = x;
 		bad_y_position = y;
 		setBadPositionColor(Bad_Player_Color, true);
+	}
+	
+	public void moveBadRand() {
+		int x = randomGen.nextInt(COLS);
+		int y = randomGen.nextInt(ROWS);
+		
+		moveBad(x, y);
 	}
 	
 	private void setPositionColor(Color color, boolean check) {
