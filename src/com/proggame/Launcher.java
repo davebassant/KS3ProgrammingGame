@@ -2,7 +2,9 @@ package com.proggame;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -20,6 +22,9 @@ import com.proggame.utils.GameOverListener;
 public class Launcher implements CommandListener, GameOverListener {
 	
 	private final static int MAX_COMMANDS_QUEUE_LENGTH = 20;
+	
+	private final static String LOOP_STR 		= "LOOP";
+	private final static String LOOP_END_STR 	= "END";
 	
 	private static Launcher instance;
 	
@@ -43,7 +48,7 @@ public class Launcher implements CommandListener, GameOverListener {
 		@Override
 		public void run() {
 			try {
-				Thread.sleep(500);
+				Thread.sleep(250);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
@@ -68,9 +73,6 @@ public class Launcher implements CommandListener, GameOverListener {
 		box.add(gamePanel);
 		
 		frame.getContentPane().add(box);
-		
-//		tpe = new ThreadPoolExecutor(1, 1, 1L, TimeUnit.MINUTES, 
-//				new ArrayBlockingQueue<Runnable>(MAX_COMMANDS_QUEUE_LENGTH));
 		
 		commandMap = new HashMap<String, Runnable>();
 		commandMap.put("DROP", new Runnable() {
@@ -140,27 +142,97 @@ public class Launcher implements CommandListener, GameOverListener {
 		frame.pack();
 		frame.setVisible(true);
 	}
+	
+	private int handleLoop(String[] commands, List<String> lstCmds, int loopStartIndex) {
+		String command = commands[loopStartIndex].trim();
+		String[] loop_args = command.split(" ");
+		if (loop_args.length != 2)
+			throw new IllegalArgumentException("loop declaration invalid; command must be 'loop N;'");
+		
+		//String quantStr = loop_args[1].substring(0, loop_args[1].length() - 1);
+		String quantStr = loop_args[1];
+		int loopCount;
+		try {
+			loopCount = Integer.parseInt(quantStr);
+		} catch (NumberFormatException nfe) {
+			throw new IllegalArgumentException("loop declaration invalid; NaN");
+		}
+		if (loopCount < 1)
+			throw new IllegalArgumentException("loop declaration invalid; negative or zero loop count");
+		
+		int end_index = ++loopStartIndex;
+		command = commands[end_index].trim().toUpperCase();
+		while (command.compareTo(LOOP_END_STR) != 0) {
+			if (command.startsWith(LOOP_STR)) 
+				throw new IllegalArgumentException("embedded loops aren't supported :(");
+			
+			++end_index;
+			if (end_index == commands.length)
+				throw new IllegalArgumentException("loop not ended");
+			
+			command = commands[end_index].trim().toUpperCase();
+		}
+		
+		int j;
+		for (int i = 0; i < loopCount; ++i) {
+			j = loopStartIndex;
+			while (j < end_index) {
+				lstCmds.add(commands[j++]);
+			}
+		}
+		
+		return end_index;
+	}
+	
+	private String[] expandLoops(String[] commands) {
+		List<String> lstCmds = new ArrayList<String>();
+		
+		String command;
+		for (int index = 0; index < commands.length; ++index) {
+			command = commands[index].trim().toUpperCase();
+			if (command.startsWith(LOOP_STR)) {
+				try {
+					index = handleLoop(commands, lstCmds, index);
+				} catch (Exception e) {
+					throw new IllegalArgumentException(e.getMessage());
+				}
+			} else {
+				lstCmds.add(command);
+			}
+		}
+		
+		String[] result = new String[lstCmds.size()];
+		return lstCmds.toArray(result);
+	}
 
 	@Override
-	public void commandsIssued(String commandStr) {
+	public boolean commandsIssued(String commandStr) {
 		tpe = new ThreadPoolExecutor(1, 1, 1L, TimeUnit.MINUTES, 
 				new ArrayBlockingQueue<Runnable>(MAX_COMMANDS_QUEUE_LENGTH), 
 				new ThreadPoolExecutor.DiscardPolicy());
 		
-		final String[] commands = commandStr.split(";");
+		String[] commands = commandStr.split(";");
 		
-		frame.addKeyListener(new KeyListenerNormal());
-		frame.requestFocus();
+		try {
+			final String[] commandsNoLoops = expandLoops(commands);
+			
+			frame.addKeyListener(new KeyListenerNormal());
+			frame.requestFocus();
+			
+			Runnable r = new Runnable() {
+	
+				@Override
+				public void run() {
+					runCommands(commandsNoLoops);
+				}
+			};
+			tpe.execute(r);
+		} catch (IllegalArgumentException e) {
+			JOptionPane.showMessageDialog(frame, e.getMessage());
+			return false;
+		}
 		
-		//runCommands(commands);
-		Runnable r = new Runnable() {
-
-			@Override
-			public void run() {
-				runCommands(commands);
-			}
-		};
-		tpe.execute(r);
+		return true;
 	}
 	
 	private void runCommands(final String[] commands) {
@@ -176,7 +248,6 @@ public class Launcher implements CommandListener, GameOverListener {
 			}
 		}
 		
-		//runCommands(commands);
 		Runnable rr = new Runnable() {
 
 			@Override
@@ -225,23 +296,22 @@ public class Launcher implements CommandListener, GameOverListener {
 
 	    @Override
 	    public void keyPressed(KeyEvent e) {
-
-	        int keyCode = e.getKeyCode();
+	    	int keyCode = e.getKeyCode();
 	    	
 	    	if (keyCode == KeyEvent.VK_RIGHT) {
-	    		//tpe.execute(SLEEP);
+	    		//tpe.execute(SMALL_SLEEP);
 	    		tpe_good.execute(commandMap.get("STEP"));
 	        }
 	    	else if (keyCode == KeyEvent.VK_LEFT) {
-	    		//tpe.execute(SLEEP);
+	    		//tpe.execute(SMALL_SLEEP);
 	    		tpe_good.execute(commandMap.get("BACK"));
 	        }
 	    	else if (keyCode == KeyEvent.VK_DOWN) {
-	    		//tpe.execute(SLEEP);
+	    		//tpe.execute(SMALL_SLEEP);
 	    		tpe_good.execute(commandMap.get("DROP"));
 	    	}
 	    	else if (keyCode == KeyEvent.VK_UP) {
-	    		//tpe.execute(SLEEP);
+	    		//tpe.execute(SMALL_SLEEP);
 	    		tpe_good.execute(commandMap.get("CLIMB"));
 	    	}
 	    }

@@ -43,10 +43,11 @@ public class CommandPanel extends JPanel {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				mlistener.commandsIssued(txtArea.getText());
-				txtArea.setText("");
-				txtArea.setEditable(false);
-				btnCommand.setEnabled(false);
+				if (mlistener.commandsIssued(txtArea.getText())) {
+					txtArea.setText("");
+					txtArea.setEditable(false);
+					btnCommand.setEnabled(false);
+				}
 			}
 		});
 		
