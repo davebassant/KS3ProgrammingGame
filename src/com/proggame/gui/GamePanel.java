@@ -28,6 +28,8 @@ public class GamePanel extends JPanel {
 	private int bad_x_position;
 	private int bad_y_position;
 	
+	private boolean isCheating;
+	
 	private final GridButton[][] gridButtons;
 	
 	private final GameOverListener gameOverListener;
@@ -74,12 +76,21 @@ public class GamePanel extends JPanel {
 		setPositionColor(Player_Color, false);
 		gridButtons[ROWS-1][COLS-1].setBackground(End_Color);
 		setBadPositionColor(Bad_Player_Color, false);
+		
+		isCheating = false;
+	}
+	
+	public void cheat() {
+		isCheating = true;
 	}
 	
 	public void moveRight() {
 		if (x_position >= (COLS - 1)) {
 			return;
 		}
+		
+		if (isCheating && x_position == (COLS - 2) && y_position == (ROWS - 1))
+			return;
 		
 		setPositionColor(Default_Color, false);
 		++x_position;
@@ -90,6 +101,9 @@ public class GamePanel extends JPanel {
 		if (y_position >= (ROWS - 1)) {
 			return;
 		}
+		
+		if (isCheating && x_position == (COLS - 1) && y_position == (ROWS - 2))
+			return;
 		
 		setPositionColor(Default_Color, false);
 		++y_position;
@@ -226,7 +240,10 @@ public class GamePanel extends JPanel {
 		if (y_position == ROWS - 1 && x_position == COLS - 1) {
 			gameOverListener.gameOverEventOccured(GameOverEvent.GOOD);
 		} else if (y_position == bad_y_position && x_position == bad_x_position) {
-			gameOverListener.gameOverEventOccured(GameOverEvent.BAD);
+			if (isCheating)
+				gameOverListener.gameOverEventOccured(GameOverEvent.CHEAT);
+			else
+				gameOverListener.gameOverEventOccured(GameOverEvent.BAD);
 		}
 	}
 	

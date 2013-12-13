@@ -23,6 +23,15 @@ public class Launcher implements CommandListener, GameOverListener {
 	
 	private final static int MAX_COMMANDS_QUEUE_LENGTH = 20;
 	
+	private static final String DEFAULT_GOOD_MSG 	= "PLAYER WINS!";
+	private static final String DEFAULT_BAD_MSG 	= "PROGRAMMER WINS!";
+	
+	//private static final String KEYBOARD_NORM 	= "NORM";
+	private static final String KEYBOARD_FLIP 	= "FLIP";
+	private static final String KEYBOARD_ALT 	= "ALT";
+	
+	private final static String KEYS_STR 		= "KEYS";
+	private final static String MSG_STR 		= "MSG";
 	private final static String MOVE_STR 		= "MOVE";
 	private final static String RAND_STR 		= "RAND";
 	private final static String LOOP_STR 		= "LOOP";
@@ -37,8 +46,10 @@ public class Launcher implements CommandListener, GameOverListener {
 	private ThreadPoolExecutor tpe;
 	private ThreadPoolExecutor tpe_good;
 	
-	private static String gameOverGoodMsg 	= "Player wins!";
-	private static String gameOverBadMsg 	= "You lose sucka!";
+	private static String gameOverGoodMsg;
+	private static String gameOverBadMsg;
+	
+	private static final String CHEAT_MSG = " ** Programmer Cheated!! **";
 	
 	private final Map<String, Runnable> commandMap;
 	private final Map<String, Runnable> badCommandMap;
@@ -135,6 +146,13 @@ public class Launcher implements CommandListener, GameOverListener {
 				gamePanel.moveBadUp();
 			}
 		});
+		badCommandMap.put("CHEAT", new Runnable() {
+
+			@Override
+			public void run() {
+				gamePanel.cheat();
+			}
+		});
 		
 		tpe_good = new ThreadPoolExecutor(1, 1, 1L, TimeUnit.MINUTES, 
 				new ArrayBlockingQueue<Runnable>(MAX_COMMANDS_QUEUE_LENGTH), 
@@ -213,13 +231,16 @@ public class Launcher implements CommandListener, GameOverListener {
 				new ArrayBlockingQueue<Runnable>(MAX_COMMANDS_QUEUE_LENGTH), 
 				new ThreadPoolExecutor.DiscardPolicy());
 		
+		gameOverGoodMsg = DEFAULT_GOOD_MSG;
+		gameOverBadMsg 	= DEFAULT_BAD_MSG;
+		
 		String[] commands = commandStr.split(";");
 		
 		try {
-			final String[] commandsNoLoops = expandLoops(commands);
-			
 			frame.addKeyListener(new KeyListenerNormal());
 			frame.requestFocus();
+			
+			final String[] commandsNoLoops = expandLoops(commands);
 			
 			Runnable r = new Runnable() {
 	
@@ -269,8 +290,87 @@ public class Launcher implements CommandListener, GameOverListener {
 		};
 	}
 	
+	private Runnable handleMsg(String command) {
+		final String[] cmdParts = command.split(" ");
+		
+		if (cmdParts.length < 2) {
+			return new Runnable() {
+
+				@Override
+				public void run() {
+					//do nothing
+				}
+			};
+		}
+			
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				gameOverBadMsg = cmdParts[1];
+			}
+		};
+	}
+	
+	private Runnable handleKeys(String command) {
+		final String[] cmdParts = command.split(" ");
+		
+		if (cmdParts.length < 2)
+			return new Runnable() {
+
+			@Override
+			public void run() {
+				//do nothing
+			}
+		};
+		
+		final KeyListener kl;
+		String keys_id = cmdParts[1];
+		//if (keys_id.equals(KEYBOARD_NORM)) {
+			//kl = new KeyListenerNormal();
+		//} else 
+		if (keys_id.equals(KEYBOARD_FLIP)) {
+			kl = new KeyListenerFlip();
+		} else if (keys_id.equals(KEYBOARD_ALT)) {
+			kl = new KeyListenerAlt();
+		} else {
+			return new Runnable() {
+
+				@Override
+				public void run() {
+					//do nothing
+				}
+			};
+		}
+			
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				resetKeyListeners(kl);
+			}
+		};
+	}
+	
+	private void clearKeyListeners() {
+		for (KeyListener kl : frame.getKeyListeners()) {
+			frame.removeKeyListener(kl);
+		}
+	}
+	
+	private void resetKeyListeners(KeyListener new_kl) {
+		if (new_kl == null) 
+			return;
+		
+		clearKeyListeners();
+		
+		frame.addKeyListener(new_kl);
+	}
+	
 	private void runCommands(final String[] commands) {
 		running = true;
+		
+		int key_change_count = 0;
 		
 		Runnable r;
 		for (String command : commands) {
@@ -279,9 +379,19 @@ public class Launcher implements CommandListener, GameOverListener {
 				r = handleMove(command);
 			} else if (command.startsWith(RAND_STR)) {
 				r = handleRand();
+			} else if (command.startsWith(MSG_STR)) {
+				r = handleMsg(command);
+			} else if (command.startsWith(KEYS_STR)) {
+				++key_change_count;
+				if (key_change_count <= 1) {
+					r = handleKeys(command);
+				} else {
+					r = null;
+				}
 			} else {
 				r = badCommandMap.get(command);
 			}
+			
 			if (r != null) {
 				tpe.execute(SLEEP);
 				tpe.execute(r);
@@ -305,13 +415,14 @@ public class Launcher implements CommandListener, GameOverListener {
 		
 		running = false;
 		
-		for (KeyListener kl : frame.getKeyListeners()) {
-			frame.removeKeyListener(kl);
-		}
+		clearKeyListeners();
+		//resetKeyListeners(null);
 		
 		tpe_good.getQueue().clear();
 		
 		String msg = (event.equals(GameOverEvent.GOOD)) ? gameOverGoodMsg : gameOverBadMsg;
+		if (event.equals(GameOverEvent.CHEAT))
+			msg += CHEAT_MSG;
 		
 		JOptionPane.showMessageDialog(frame, msg);
 		
@@ -322,6 +433,7 @@ public class Launcher implements CommandListener, GameOverListener {
 			public void run() {
 				cmdPanel.initialise();
 				gamePanel.initialise();
+				resetKeyListeners(null);
 			}
 		});
 		tpe.shutdown();
@@ -362,7 +474,7 @@ public class Launcher implements CommandListener, GameOverListener {
 	    }
 	}
 	
-	public class KeyListenerAlt implements KeyListener {
+	public class KeyListenerFlip implements KeyListener {
 
 		@Override
 	    public void keyTyped(KeyEvent e) {
@@ -398,7 +510,7 @@ public class Launcher implements CommandListener, GameOverListener {
 	    }
 	}
 	
-	public class KeyListenerWeird implements KeyListener {
+	public class KeyListenerAlt implements KeyListener {
 
 		@Override
 	    public void keyTyped(KeyEvent e) {
